@@ -2,3 +2,5 @@ covers
 .cache
 config.toml
 .venv
+geckodriver.log
+my-songs.json

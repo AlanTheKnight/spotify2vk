@@ -43,13 +43,13 @@ options.add_argument("user-agent=" + USER_AGENT)
 options.add_argument("--profile=" + FIREFOX_PROFILE)
 driver = webdriver.Firefox(options=options)
 
-# Open VK
-driver.get(AUDIO_URL)
-
 MISSING_SONGS = []
 
 for PLAYLIST in PLAYLISTS:
-    el = WebDriverWait(driver, 10).until(
+    # Open VK
+    driver.get(AUDIO_URL)
+
+    WebDriverWait(driver, 10).until(
         lambda d: d.find_element(*CREATE_PLAYLIST_BTN).is_displayed())
 
     # Click on create playlist button
@@ -57,30 +57,44 @@ for PLAYLIST in PLAYLISTS:
 
     driver.implicitly_wait(2)
 
+    # Add playlist cover
     driver.find_element(
         *PLAYLIST_COVER_INPUT).send_keys(COVERS_FOLDER + PLAYLIST["id"] + ".jpg")
+
+    # Add playlist name
     driver.find_element(*PLAYLIST_TITLE_INPUT).send_keys(PLAYLIST["name"])
+
+    # Add playlist description
     driver.find_element(*PLAYLIST_DESCRIPTION_INPUT).send_keys(
         PLAYLIST["description"])
+
+    # Set playlist to private
     driver.find_element(*PLAYLIST_PRIVATE_CHECKBOX).click()
 
     for song in PLAYLIST["songs"]:
         driver.find_element(
             *PLAYLIST_ADD_SONGS_BTN).send_keys(song["artist"] + " - " + song["title"])
         try:
-            WebDriverWait(driver, 3).until(
+            # Skip if no songs found
+            WebDriverWait(driver, 5).until(
                 lambda d: d.find_element(
                     By.CSS_SELECTOR, ".ape_list_header").is_displayed()
             )
             driver.find_element(By.CLASS_NAME, "ape_check").click()
         except TimeoutException:
             MISSING_SONGS.append(song["artist"] + "-" + song["title"])
+        # Clear search field
         driver.find_element(By.CLASS_NAME, "ui_search_reset").click()
+
+    # Click on create playlist button
     driver.find_element(By.CLASS_NAME, "FlatButton").click()
+
+    driver.implicitly_wait(10)
 
 with open("missing-songs.txt", "w") as f:
     for song in MISSING_SONGS:
         f.write(song + "\n")
 
 print(colorama.Fore.GREEN + "Музыка добавлена")
-print(colorama.Fore.RED + f"Не найден некоторые треки: {len(MISSING_SONGS)}")
+if len(MISSING_SONGS):
+    print(colorama.Fore.RED + f"Не найдены некоторые треки: {len(MISSING_SONGS)}")
